@@ -1,6 +1,9 @@
 from os import path, listdir, makedirs, rename
 from hashlib import sha256, md5, sha1
 from collections import defaultdict
+from random import choices
+from string import ascii_letters, digits
+from time import time
 
 UPASS_DIRECTORY = "../Unprocessed-Passwords/"
 PPASS_DIRECTORY = "../Processed/"
@@ -31,7 +34,7 @@ def add_password(pw, source_file="search"):
             sub_index = "wildcards"
             if not path.exists(INDEX_DIRECTORY + sub_index):
                 makedirs(INDEX_DIRECTORY + sub_index)
-    with open(f"{INDEX_DIRECTORY}{sub_index}/{pass_count_dict[sub_index] // 1000}.txt", "a", encoding='utf-8') as sub_index_file:
+    with open(f"{INDEX_DIRECTORY}{sub_index}/{pass_count_dict[sub_index] // 10000}.txt", "a", encoding='utf-8') as sub_index_file:
         sub_index_file.write(f"{pw}|{md5(pw.encode()).hexdigest()}|{sha1(pw.encode()).hexdigest()}|{sha256(pw.encode()).hexdigest()}|{source_file}\n")
 
 def sort_passwords():
@@ -44,7 +47,7 @@ def sort_passwords():
         rename(path.join(UPASS_DIRECTORY, upass_file), path.join(PPASS_DIRECTORY, upass_file))
 
 if __name__ == "__main__":
-    option = input("[1] Create Index\n[2] Search Password\n[3] Quit\nChoice: ")
+    option = input("[1] Create Index\n[2] Search Password\n[3] Calculate Performance\n[4] Quit\nChoice: ")
     match option:
         case "1":
             sort_passwords()
@@ -57,5 +60,12 @@ if __name__ == "__main__":
                 print(f"Password '{password}' not found and added.")
             else:
                 print(output)
-        case "3" | _:
+        case "3":
+            random_passwords = ["".join(choices(ascii_letters + digits, k=15)) for _ in range(10)]
+            start = time()
+            for _ in range(10):
+                search_password(random_passwords[_])
+            end = time()
+            print(f"Total time passed searching for 10 random passwords: {end - start}")
+        case "4" | _:
             print("Thank you for choosing us. See you next time!")
