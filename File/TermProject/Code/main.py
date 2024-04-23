@@ -1,29 +1,61 @@
-import os
+from os import path, listdir, makedirs, rename
 from hashlib import sha256, md5, sha1
+from collections import defaultdict
+
+UPASS_DIRECTORY = "../Unprocessed-Passwords/"
+PPASS_DIRECTORY = "../Processed/"
+INDEX_DIRECTORY = "../Index/"
+pass_count_dict = defaultdict(int)
+
+def search_password(password):
+    found = False
+    search_directory = f"../Index/{password[0]}/"
+    try:
+        for filename in listdir(search_directory):
+            if path.isfile(path.join(search_directory, filename)):
+                with open((search_directory + filename), "r") as file:
+                    for line in file:
+                        if line.split("|")[0] == password:
+                            return line
+    except FileNotFoundError:
+        pass
+    return found
+
+def add_password(pw, source_file="search"):
+    sub_index = pw[0]
+    pass_count_dict[sub_index] += 1
+    if not path.exists(INDEX_DIRECTORY + sub_index):
+        try:
+            makedirs(INDEX_DIRECTORY + sub_index)
+        except OSError:
+            sub_index = "wildcards"
+            if not path.exists(INDEX_DIRECTORY + sub_index):
+                makedirs(INDEX_DIRECTORY + sub_index)
+    with open(f"{INDEX_DIRECTORY}{sub_index}/{pass_count_dict[sub_index] // 1000}.txt", "a", encoding='utf-8') as sub_index_file:
+        sub_index_file.write(f"{pw}|{md5(pw.encode()).hexdigest()}|{sha1(pw.encode()).hexdigest()}|{sha256(pw.encode()).hexdigest()}|{source_file}\n")
 
 def sort_passwords():
-    upass_directory = "../Unprocessed-Passwords/"
-    ppass_directory = "../Processed/"
-    index_directory = "../Index/"
-    for filename in os.listdir(upass_directory):
-        if os.path.isfile(os.path.join(upass_directory, filename)):
-            with open(os.path.join(upass_directory, filename), "r", encoding='utf-8') as upfiles:
-                for line in upfiles.readlines():
-                    password = line.rstrip("\n")
-                    name = password[0]
-                    if not os.path.exists(index_directory + f"{line[0]}"):
-                        try:
-                            os.makedirs(index_directory + f"{line[0]}")
-                        except OSError:
-                            if not os.path.exists(index_directory + "wildcards"):
-                                os.makedirs(index_directory + "wildcards")
-                            name = "wildcards"
-                    with open(f"{index_directory}{name}/0.txt", "a", encoding='utf-8') as indexfile:
-                        md5_hash = md5(line.encode()).hexdigest()
-                        sha128_hash = sha1(line.encode()).hexdigest()
-                        sha256_hash = sha256(line.encode()).hexdigest()
-                        indexfile.write(f"{password}|{md5_hash}|{sha128_hash}|{sha256_hash}|{filename}\n")
-        # os.rename(os.path.join(upass_directory, filename), os.path.join(ppass_directory, filename))
+    for upass_file in listdir(UPASS_DIRECTORY):
+        if path.isfile(path.join(UPASS_DIRECTORY, upass_file)):
+            with open(path.join(UPASS_DIRECTORY, upass_file), "r", encoding='utf-8') as file:
+                for line in file.readlines():
+                    if search_password(line.rstrip("\n")) == False:
+                        add_password(line.rstrip("\n"), upass_file)
+        rename(path.join(UPASS_DIRECTORY, upass_file), path.join(PPASS_DIRECTORY, upass_file))
 
 if __name__ == "__main__":
-    sort_passwords()
+    option = input("[1] Create Index\n[2] Search Password\n[3] Quit\nChoice: ")
+    match option:
+        case "1":
+            sort_passwords()
+            print("Passwords successfully sorted.")
+        case "2":
+            password = input("Password to search for: ")
+            output = search_password(password)
+            if output == False:
+                add_password(password)
+                print(f"Password '{password}' not found and added.")
+            else:
+                print(output)
+        case "3" | _:
+            print("Thank you for choosing us. See you next time!")
